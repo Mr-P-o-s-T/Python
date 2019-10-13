@@ -1,4 +1,4 @@
-from generator import generator, file_generator, folder_generator, project_generator
-
-
-gen = generator.Generator
+from .generator import Generator
+from .file_generator import FileGenerator
+from .folder_generator import FolderGenerator
+from .project_generator import ProjectGenerator
