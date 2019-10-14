@@ -1,2 +1,2 @@
-from .function import Function
-from ._class import Class
+from .functions import Function
+from .classes import Class
