@@ -25,7 +25,7 @@ class Function:
 
     @property
     def is_constructor(self) -> bool:
-        return self.ret_type is None
+        return self.is_method and self.ret_type is None
 
     @property
     def is_method(self) -> bool:
