@@ -31,14 +31,13 @@ class Generator:
 
     def _generate_fs_tree(self):
         path = self.inner_path.split(os.sep)
-        if not os.path.isdir(self.output_path):
-            os.mkdir(self.output_path)
-        folder = path[0]
-        for i in range(1, len(path)):
-            tmp = os.path.join(self.output_path, folder)
-            if not os.path.isdir(tmp):
-                os.mkdir(tmp)
-            folder = os.path.join(os.sep + path[i])
+        folder = self.output_path
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        for i in range(0, len(path) - 1):
+            folder = os.path.join(folder, path[i])
+            if not os.path.isdir(folder):
+                os.mkdir(folder)
 
     def _generate_header(self, current_path: str = '', increment_path: str = os.pardir + os.sep) -> str:
         path = self.inner_path.split(os.sep)

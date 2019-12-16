@@ -59,7 +59,11 @@ class FileGenerator(Generator):
             self.parser = FileParser(os.path.join(self.outer_path, self.inner_path))
 
     def generate(self, *args, **kwargs):
-        self.parser.parse()
+        try:
+            self.parser.parse()
+        except Exception as e:
+            self.parser = None
+            return
         inp_file = open(os.path.join(self._templates_path, 'template.html'), 'r')
         template = inp_file.read().split('{content}', 1)
         inp_file.close()
@@ -84,8 +88,10 @@ class FileGenerator(Generator):
             return res.format('')
 
     def extract_index(self):
-        res = self.parser.generate_index()
-        for i in range(len(res)):
-            res[i] = res[i] + (self.inner_path, )
-        return res
+        if self.parser is not None:
+            res = self.parser.generate_index()
+            for i in range(len(res)):
+                res[i] = res[i] + (self.inner_path, )
+            return res
+        return []
 

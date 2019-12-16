@@ -50,6 +50,9 @@ class FileObject:
     @comment_list.setter
     def comment_list(self, comment_block: list):
         for comment in comment_block:
+            if comment[0] == Helper.multiline:
+                tmp = comment[1].split('\n')
+                comment = (comment[0], '<br />'.join(tmp))
             self._comments.append(comment)
 
     @property

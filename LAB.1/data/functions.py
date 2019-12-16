@@ -56,6 +56,12 @@ class Function(FileObject):
             j += 1
         return res.format('')
 
+    def generate_name(self) -> str:
+        func_name = self.name
+        for x in self.args:
+            func_name += '_' + x[1] + '_' + x[2]
+        return func_name
+
     def __str__(self):
         res = function_description.format(self.ret_type, self.generate_namespace(self.namespaces), self.name, '{}',
                                           self.comment_list)

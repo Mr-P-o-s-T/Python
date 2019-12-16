@@ -144,7 +144,8 @@ class Class(FileObject):
     def search_in_subbodies(class_, namespaces_: str):
         while namespaces_ != '':
             name, namespaces_ = Helper.slice_long_id(namespaces_)
-            class_ = class_.subclasses[name]
+            if name in class_.subclasses:
+                class_ = class_.subclasses[name]
         return class_
 
     @staticmethod
@@ -185,7 +186,8 @@ class Class(FileObject):
 
     @staticmethod
     def process_function(class_, comments_block, x: tuple, is_method: bool = True):
-        name = Helper.slice_long_id(x[2])[0]
+        tmp = Function(x, is_method, class_.namespaces + class_.name + '::')
+        name = tmp.generate_name()
         if name in class_.functions:
             tmp = class_.functions[name]
             if len(x) == 4:
@@ -193,14 +195,14 @@ class Class(FileObject):
             else:
                 tmp.body = x[4]
         else:
-            tmp = Function(x, is_method, class_.namespaces + class_.name + '::')
             class_.functions.update({name: tmp})
             tmp.comment_list = comments_block
-        tmp.parse()
+            tmp.parse()
 
     @staticmethod
     def process_template_function(class_, comments_block, x: tuple, is_method: bool = True):
-        name = Helper.slice_long_id(x[4])[0]
+        tmp = TemplateFunction(x, is_method, class_.namespaces + class_.name + '::')
+        name = tmp.generate_name()
         if name in class_.functions:
             tmp = class_.functions[name]
             if len(x) == 6:
@@ -208,10 +210,9 @@ class Class(FileObject):
             else:
                 tmp.body = x[6]
         else:
-            tmp = TemplateFunction(x, is_method, class_.namespaces + class_.name + '::')
             class_.functions.update({name: tmp})
             tmp.comment_list = comments_block
-        tmp.parse()
+            tmp.parse()
 
     @staticmethod
     def process_variable(class_, comments_block: list, x: tuple, is_field: bool = True):

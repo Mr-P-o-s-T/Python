@@ -27,17 +27,19 @@ class Helper:
     file = 'file'
     define = 'define'
     include = 'include'
+    typedef = 'typedef'
 
     __space_tab = r"[\t ]"
     __name_sep = r"::"
     __id = r"[a-zA-z_]\w*"
     __long_id = r"[a-zA-z_](?:\w|{}|<[^<>]+>)*".format(__name_sep)
-    __type_id = r"(?:(?:const|volatile|mutable|register|static|extern){}+)?(?:(?:unsigned|signed|long|short){}+)*{}". \
-        format(__space_tab, __space_tab, __long_id)
+    __type_id = \
+        r"(?:(?:const|volatile|mutable|register|static|extern|unsigned|signed|long|short|class|struct|union){}+)*{}". \
+        format(__space_tab, __long_id)
 
     __name_sep_pattern = re.compile(__name_sep)
 
-    __one_line_comment = r"{}*//{}*(.*)\s".format(__space_tab, __space_tab)
+    __one_line_comment = r"{}*//{}*(.*)\s?".format(__space_tab, __space_tab)
     __multiline_comment = r"{}*/\*\s*([\s\S]*?)\s*\*/\s".format(__space_tab)
     __one_line_comment_pattern = re.compile(__one_line_comment)
     __multiline_comment_pattern = re.compile(__multiline_comment)
@@ -49,17 +51,17 @@ class Helper:
     __patterns = dict()
 
     __args_list = r"\s*,\s*"
-    __pointer = r"([*&]+)?"
+    __pointer = r"(\(*[*&]+\)*\s*(?:const|volatile)*)?"
     __args_list_patterns = re.compile(__args_list)
 
     __array_header = r"{}*({}){}(.+?)\s*=\s*$".format(__space_tab, __type_id, __pointer + r"{}+".format(__space_tab))
-    __function_header = r"{}*(?:inline\s+)?((?:{})\s*(?:[*&]+)?)\s+({}|operator.{})\s*\(([^()]*?)\)\s*$".\
+    __function_header = r"{}*(?:inline\s+)?((?:{})\s*(?:[*&]+)?\s+)?(~?{}|operator.{})\s*\(([\s\S]*?)\)\s+(?:const)?(?::[\s\S]+)?\s*$".\
         format(__space_tab, __type_id, __long_id, '{1,2}')
-    __namespace_header = r"{}*((?:inline\s)?namespace)\s+({})\s*$".format(__space_tab, __long_id)
-    __class_header = r"{}*(class|struct|union)\s+({})\s*$".format(__space_tab, __long_id)
+    __namespace_header = r"{}*((?:inline\s)?namespace)\s+({})?\s*$".format(__space_tab, __long_id)
+    __class_header = r"{}*(class|struct|union)\s+({})?\s*(?::\s*[\s\S]+?\s*)?$".format(__space_tab, __long_id)
     __class_array_ending_1 = r"^\s*(.+\s*=\s*)$"
     __class_array_ending_2 = r"^\s*(.*)\s*;"
-    __template = r"{}*(template)\s+<([\s\S]*)>\s*$".format(__space_tab)
+    __template = r"{}*(template)\s*<([\s\S]*)>\s*$".format(__space_tab)
     __array_header_pattern = re.compile(__array_header)
     __function_header_pattern = re.compile(__function_header)
     __namespace_header_pattern = re.compile(__namespace_header)
@@ -74,11 +76,11 @@ class Helper:
     __include_pattern = re.compile(__include)
     __define_pattern = re.compile(__define)
 
-    __variable_decl = r"{}*({}){}([\s\S]+?);".format(__space_tab, __type_id, __pointer + r"\s+")
-    __function_declaration = r"{}*(?:(friend\s)\s*)?((?:{})\s*(?:[*&]+)?)\s+({}|operator.{})\s*\(([^()]*?)\)\s*;".\
+    __variable_decl = r"{}*({}|\.{}){}(?:\s+([\s\S]+?))?;".format(__space_tab, __type_id, '{3}', __pointer)
+    __function_declaration = r"{}*(?:(friend\s)\s*)?((?:{})\s*(?:[*&]+)?)\s+(~?{}|operator.{})\s*\(([\s\S]*?)\)\s*;".\
         format(__space_tab, __type_id, __long_id, '{1,2}')
-    __class_declaration = r"{}*(?:(friend\s)\s*)?(class|structure|union)\s+({})\s*;".format(__space_tab, __long_id)
-    __variable_init = r"^{}({})(?:(\[.*\]))?(?:\s*=\s*([\s\S]+)?)?$".format(__pointer + r"\s*", __long_id)
+    __class_declaration = r"{}*(?:(friend\s)\s*)?(class|structure|union)\s+({})?\s*;".format(__space_tab, __long_id)
+    __variable_init = r"^\s?{}\s*({})?(?:(\[.*\]))?(?:\s*=\s*([\s\S]+)?)?$".format(__pointer, __long_id)
     __variable_decl_pattern = re.compile(__variable_decl)
     __function_decl_pattern = re.compile(__function_declaration)
     __class_decl_pattern = re.compile(__class_declaration)
@@ -198,6 +200,8 @@ class Helper:
         splitter_content = list()
 
         for i in range(len(content_list)):
+            if Helper.__is_tuple(content_list[i]):
+                continue
             brackets = pattern.findall(content_list[i])
             splitter_content += pattern.split(content_list[i])
 
@@ -266,12 +270,28 @@ class Helper:
                             tmp += content
                             content_list[i] = (Helper.arrays, header[0][0], header[0][1])
                             Helper.__extract_variables_list_with_initializations(content_list, i, tmp)
+                        else:
+                            content_list[i] = [content_list[i]]
+                            Helper.__extract_bodies(content_list[i])
                 Helper.__extract_templates_declaration(content_list, i)
 
         tmp = list(filter(Helper.__is_non_empty_str, content_list))
         content_list.clear()
         content_list += tmp
-        # Helper.__separate_tuples_(content_list)
+
+        for i in range(len(content_list) - 1, -1, -1):
+            if type(content_list[i]) == list:
+                if len(content_list[i]) == 1:
+                    content_list[i - 1] += '{' + content_list[i][0] + '}' + content_list[i + 1]
+                    del content_list[i]
+                    del content_list[i + 1]
+                    i -= 1
+                else:
+                    content_list[i - 1] += '{' + content_list[i][0]
+                    content_list[i + 1] = content_list[i][-1] + '}' + content_list[i + 1]
+                    for j in range(len(content_list[i]) - 2, 0, -1):
+                        content_list.insert(i + 1, content_list[i][j])
+                    del content_list[i]
 
     @staticmethod
     def __extract_variables_list_with_initializations(content_list, i, tmp):
@@ -365,17 +385,25 @@ class Helper:
                 if content_list[i][0] == Helper.arrays:
                     variables = content_list[i][3]
                 else:
+                    if content_list[i][1] == Helper.typedef:
+                        new_type = content_list[i][3].split()
+                        content_list[i] = (content_list[i][1], ' '.join(new_type[:-1]), new_type[-1])
+                        continue
                     variables = [content_list[i][3]]
                     Helper.__extract_round_brackets(variables)
-                variables[0] = content_list[i][2] + variables[0]
+                variables[0] = content_list[i][2] + ' ' + variables[0]
 
             for variable in variables:
-                tmp_i = Helper.__variable_init_pattern.findall(variable)[0]
-                if tmp_i[2] == '':
-                    content_list.insert(i + 1, (Helper.variable, content_list[i][1]) + tmp_i)
+                tmp_i = Helper.__variable_init_pattern.findall(variable)
+                if len(tmp_i) == 0:
+                    content_list.insert(i + 1, (Helper.variable, content_list[i][1], '', '', '', ''))
                 else:
-                    content_list.insert(i + 1, (Helper.array, content_list[i][1]) + tmp_i[0:2] + (tmp_i[2][1:-1],) +
-                                        tmp_i[3:])
+                    tmp_i = tmp_i[0]
+                    if tmp_i[2] == '':
+                        content_list.insert(i + 1, (Helper.variable, content_list[i][1]) + tmp_i)
+                    else:
+                        content_list.insert(i + 1, (Helper.array, content_list[i][1]) + tmp_i[0:2] + (tmp_i[2][1:-1],) +
+                                            tmp_i[3:])
 
             if content_list[i][0] == Helper.class_def or content_list[i][0] == Helper.struct_def or \
                     content_list[i][0] == Helper.union_def or content_list[i][0] == Helper.template:
@@ -399,6 +427,8 @@ class Helper:
                 if content_list[i][1] == 'friend ':
                     content_list[i] = (Helper.friend_function_decl,) + content_list[i][2:4] + \
                                       (Helper.__extract_function_args(content_list[i][4]),) + content_list[i][5:]
+                elif content_list[i][2] == Helper.typedef:
+                    content_list[i] = content_list[i][2:]
                 else:
                     content_list[i] = (Helper.function_decl,) + content_list[i][2:4] + \
                                       (Helper.__extract_function_args(content_list[i][4]),) + content_list[i][5:]
@@ -457,8 +487,8 @@ class Helper:
             Helper.__extract_bodies(content)
             Helper.__extract_usages(content)
             Helper.__extract_access_modifiers(content)
-
             Helper.__extract_comments(content)
+
             Helper.__extract_functions_decl(content)
             Helper.__extract_classes_decl(content)
             Helper.__extract_variables_decl(content)

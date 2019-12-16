@@ -53,7 +53,7 @@ class FileParser(Namespace):
         while content[i][0] != Helper.oneline and content[i][0] != Helper.multiline and i < len(self.preprocessors):
             i += 1
         if content[i][0] == Helper.multiline:
-            self.comment_list = content[i]
+            self.comment_list = [content[i]]
             del content[i]
         elif content[i][0] == Helper.oneline:
             comment_block = list()

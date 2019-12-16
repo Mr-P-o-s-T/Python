@@ -40,7 +40,8 @@ class FolderGenerator(Generator):
                 self.generators.append(FolderGenerator(self.output_path, self.outer_path, os.path.join(self.inner_path,
                                                                                                        directory)))
         for file in f:
-            if '.h' in file or '.cpp' in file:
+            if file.endswith('.h') or file.endswith('.hpp') or file.endswith('.cpp') or file.endswith('.c') or file.endswith('.cc')\
+                    or file.endswith('.cxx') or file.endswith('.c++') or file.endswith('.txx'):
                 self.generators.append(FileGenerator(self.output_path, self.outer_path, os.path.join(self.inner_path,
                                                                                                      file)))
 
@@ -63,6 +64,16 @@ class FolderGenerator(Generator):
         output.write(''.join(template))
         output.close()
 
+    def _generate_fs_tree(self):
+        path = self.inner_path.split(os.sep)
+        folder = self.output_path
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+        for i in range(0, len(path)):
+            folder = os.path.join(folder, path[i])
+            if not os.path.isdir(folder):
+                os.mkdir(folder)
+
     def _generate_header(self, current_path: str = '', increment_path: str = os.pardir + os.sep) -> str:
         res = super()._generate_header(current_path, increment_path)
         if self.name != os.path.basename(self.outer_path):
@@ -74,7 +85,8 @@ class FolderGenerator(Generator):
         res = '{}'
         for generator in self.generators:
             if type(generator) is FileGenerator:
-                res = res.format(file_item.format(generator.name + '.html', generator.name, '{}'))
+                if generator.parser is not None:
+                    res = res.format(file_item.format(generator.name + '.html', generator.name, '{}'))
             else:
                 res = res.format(file_item.format(os.path.join(generator.name, 'content.html'), generator.name, '{}'))
 

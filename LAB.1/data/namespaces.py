@@ -35,7 +35,7 @@ class Namespace(Class):
             name, namespaces_ = Helper.slice_long_id(namespaces_)
             if name in area_.subclasses:
                 area_ = area_.subclasses[name]
-            else:
+            elif name in area_.subnamespaces:
                 area_ = area_.subnamespaces[name]
         return area_
 
@@ -46,20 +46,11 @@ class Namespace(Class):
         tmp.parse()
 
     @staticmethod
-    def process_function(area_, comments_block, x: tuple, is_method: bool = False):
-        name, namespaces_ = Helper.slice_long_id(x[2])
-        area_ = area_.search_in_subbodies(area_, namespaces_)
-        super().process_function(area_, comments_block, x, is_method)
-
-    @staticmethod
-    def process_template_function(area_, comments_block, x: tuple, is_method: bool = False):
-        name, namespaces_ = Helper.slice_long_id(x[4])
-        area_ = area_.search_in_subbodies(area_, namespaces_)
-        super().process_template_function(area_, comments_block, x, is_method)
-
-    @staticmethod
     def process_variable(class_, comments_block: list, x: tuple, is_field: bool = False):
-        super().process_variable(class_, comments_block, x, is_field)
+        tmp = Variable(x, is_field, class_.namespaces + class_.name + '::')
+        class_.variables.update({x[3]: tmp})
+        tmp.comment_list = comments_block
+        tmp.parse()
 
     def __str__(self):
         return ''
