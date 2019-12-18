@@ -65,9 +65,9 @@ class Function(FileObject):
     def __str__(self):
         res = function_description.format(self.ret_type, self.generate_namespace(self.namespaces), self.name, '{}',
                                           self.comment_list)
-        res = res.format(self._generate_arguments(argument))
 
-        return res
+        tmp = res.format(self._generate_arguments(argument))
+        return tmp
 
 
 class TemplateFunction(Function):

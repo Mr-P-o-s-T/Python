@@ -73,8 +73,10 @@ class Helper:
     __include = r"{}*#(include)\s+([<\"].*?[\">])".format(__space_tab)
     __define = r"{}*#(define){}+({}(?:\(.+\))?){}*((?:\\\n|[^\\\n])*)".format(__space_tab, __space_tab, __id,
                                                                               __space_tab)
+    __macro = r"^{}*#.+".format(__space_tab)
     __include_pattern = re.compile(__include)
     __define_pattern = re.compile(__define)
+    __macro_pattern = re.compile(__macro)
 
     __variable_decl = r"{}*({}|\.{}){}(?:\s+([\s\S]+?))?;".format(__space_tab, __type_id, '{3}', __pointer)
     __function_declaration = r"{}*(?:(friend\s)\s*)?((?:{})\s*(?:[*&]+)?)\s+(~?{}|operator.{})\s*\(([\s\S]*?)\)\s*;".\
@@ -241,7 +243,8 @@ class Helper:
 
     @staticmethod
     def __determine_bodies(content_list: list):
-        for i in range(1, len(content_list), 2):
+        i = 1
+        while i < len(content_list):
             header = Helper.__namespace_header_pattern.findall(content_list[i - 1])
             if len(header):
                 content_list[i - 1] = Helper.__namespace_header_pattern.split(content_list[i - 1])[0]
@@ -270,10 +273,11 @@ class Helper:
                             tmp += content
                             content_list[i] = (Helper.arrays, header[0][0], header[0][1])
                             Helper.__extract_variables_list_with_initializations(content_list, i, tmp)
-                        else:
+                        elif content_list[i] != '':
                             content_list[i] = [content_list[i]]
                             Helper.__extract_bodies(content_list[i])
                 Helper.__extract_templates_declaration(content_list, i)
+            i += 2
 
         tmp = list(filter(Helper.__is_non_empty_str, content_list))
         content_list.clear()
@@ -298,7 +302,7 @@ class Helper:
         shift = 1
         tail = Helper.__class_array_ending_1_pattern.findall(content_list[i + 2 * shift - 1])
         while len(tail) != 0:
-            content_list[i + 2 * shift - 1] = ''
+            content_list[i + 2 * shift - 1]
             content = [tail[0]]
             Helper.__extract_round_brackets(content)
             content[-1] += '{' + content_list[i + 2 * shift] + '}'
@@ -316,26 +320,18 @@ class Helper:
 
     @staticmethod
     def __extract_macros(content_list: list) -> list:
-        res = Helper.__extract_macro(content_list, Helper.__define_pattern)
-        res += Helper.__extract_macro(content_list, Helper.__include_pattern)
+        res = Helper.__extract_macro(content_list, Helper.__define_pattern, '')
+        res += Helper.__extract_macro(content_list, Helper.__include_pattern, '')
+        Helper.__extract_macro(content_list, Helper.__macro_pattern, '\n')
         return res
 
     @staticmethod
-    def __extract_macro(content_list: list, pattern) -> list:
+    def __extract_macro(content_list: list, pattern, repl: str) -> list:
         res = list()
-        splitter_content = list()
-        length = int(1)
         for i in range(len(content_list)):
+            content_list[i] = repl + content_list[i]
             res += pattern.findall(content_list[i])
-            tmp = pattern.split(content_list[i])
-            if len(res) != 0:
-                length = len(res[0]) + 1
-            splitter_content += [tmp[length * i] for i in range(len(tmp) // length + (1, 0)[len(tmp) % length == 0])
-                                 if tmp[length * i] != '']
-        content_list.clear()
-        content_list.append('')
-        for x in splitter_content:
-            content_list[0] += x
+            content_list[i] = pattern.sub(repl, content_list[i])
         return res
 
     @staticmethod

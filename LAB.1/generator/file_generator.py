@@ -59,9 +59,11 @@ class FileGenerator(Generator):
             self.parser = FileParser(os.path.join(self.outer_path, self.inner_path))
 
     def generate(self, *args, **kwargs):
+        print(os.path.join(self.outer_path, self.inner_path))
         try:
             self.parser.parse()
         except Exception as e:
+            print('Parsing failed!')
             self.parser = None
             return
         inp_file = open(os.path.join(self._templates_path, 'template.html'), 'r')
