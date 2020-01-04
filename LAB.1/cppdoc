@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import argparse
+
+from generator import FileGenerator, ModuleGenerator, ProjectGenerator
+
+parser = argparse.ArgumentParser()
+
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument("--file",    "-f", help="Path to file.")
+group.add_argument("--module",  "-m", help="Path to module.")
+group.add_argument("--project", "-p", help="Path to project.")
+parser.add_argument("--output",  "-o", help="Output result.", required=True)
+
+parser.add_argument('--version', action='version', version='v1.0')
+
+args = parser.parse_args()
+
+if args.file is not None:
+
+    generator = FileGenerator(args.output, args.file)
+    generator.generate()
+
+elif args.module is not None:
+
+    generator = ModuleGenerator(args.output, args.module)
+    generator.generate()
+
+elif args.project is not None:
+
+    generator = ProjectGenerator(args.output, args.project)
+    generator.generate()
+
+else:
+    parser.print_usage()
